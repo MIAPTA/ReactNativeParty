@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // import Contact from '../components/Contact';
  import Tienda from '../components/Tienda';
 // import OneProduct from '../components/OneProduct';
-// import Nosotros from '../components/Nosotros';
+ import Nosotros from '../components/Nosotros';
 // import Login from '../components/Login';
 // import Cuenta from '../components/Cuenta';
 // import UserRegister from '../components/UserRegister';
@@ -51,9 +51,9 @@ const App = () => {
         <Stack.Screen name="Inicio" component={Inicio} />
         <Stack.Screen name="Tienda" component={Tienda} />
         {/* <Stack.Screen name="Producto" component={OneProduct} />
-        <Stack.Screen name="Contacto" component={Contact} />
+        <Stack.Screen name="Contacto" component={Contact} /> */}
         <Stack.Screen name="Nosotros" component={Nosotros} />
-        <Stack.Screen name="Carrito" component={Cart} />
+        {/* <Stack.Screen name="Carrito" component={Cart} />
         <Stack.Screen name="CompraRealizada" component={CompraRealizada} />
         <Stack.Screen name="Login">
           {(props) => (
