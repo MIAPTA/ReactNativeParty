@@ -1,23 +1,26 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Text, View, Button, StyleSheet } from "react-native";
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from "@react-navigation/native";
 
 const CompraRealizada = () => {
   const [usuario, setUsuario] = useState({});
-  const [totalCompra, setTotalCompra] = useState(0); // Añadimos un estado para el total de la compra
-
-  // Aquí podrías obtener el ID del usuario actual desde el localStorage
-  const userId = localStorage.getItem('userId');
+  const [totalCompra, setTotalCompra] = useState(0);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
+        const userId = await AsyncStorage.getItem('userId');
+        const uriBack = await AsyncStorage.getItem('backend_uri');
+
         // Obtener los detalles del usuario
-        const usuarioResponse = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/usuario/${userId}`);
+        const usuarioResponse = await axios.get(`${uriBack}/api/usuario/${userId}`);
         setUsuario(usuarioResponse.data);
-        
-        // Obtener el total de la compra desde localStorage
-        const totalCompraLocal = localStorage.getItem('totalCompra');
+
+        // Obtener el total de la compra desde AsyncStorage
+        const totalCompraLocal = await AsyncStorage.getItem('totalCompra');
         setTotalCompra(totalCompraLocal || 0);
       } catch (error) {
         console.error("Error al obtener los detalles del usuario:", error);
@@ -25,43 +28,61 @@ const CompraRealizada = () => {
     };
 
     fetchUserDetails();
-  }, [userId]);
+  }, []);
 
   return (
-    <section className="section section-register">
-      <div className="container container-background">
-        <div className="columns is-centered">
-          <div className="column is-6">
-            <div className="box">
-              <h2 className="title is-2 has-text-centered mb-6 newh2">
-                Compra realizada
-              </h2>
-              <div className="content cont-venta">
-                <p className="has-text-white">
-                  <strong className="info-venta">Nombre del Usuario: </strong>
-                  {usuario.nombre}
-                </p>
-                <p className="has-text-white">
-                  <strong className="info-venta">Gracias por tu compra.</strong>
-                </p>
-                <p className="has-text-white">
-                  <strong className="info-venta">Precio Total de la compra: </strong>
-                  ${totalCompra} COP
-                </p>
-              </div>
-              <div className="field is-grouped is-grouped-centered">
-                <div className="control">
-                  <Link to="/tienda" className="button is-link btn-form">
-                    Volver a la tienda
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <View style={styles.container}>
+      <Text style={styles.title}>Compra Realizada</Text>
+      <View style={styles.content}>
+        <Text style={styles.text}>
+          <Text style={styles.label}>Nombre del Usuario: </Text>
+          {usuario.nombre || "No disponible"}
+        </Text>
+        <Text style={styles.text}>
+          <Text style={styles.label}>Gracias por tu compra.</Text>
+        </Text>
+        <Text style={styles.text}>
+          <Text style={styles.label}>Precio Total de la compra: </Text>
+          ${totalCompra} COP
+        </Text>
+      </View>
+      <Button
+        title="Volver a la tienda"
+        onPress={() => navigation.navigate("Tienda")}
+      />
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#1e1e1e",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 20,
+  },
+  content: {
+    backgroundColor: "#333",
+    padding: 16,
+    borderRadius: 8,
+    width: "100%",
+    marginBottom: 20,
+  },
+  text: {
+    color: "#fff",
+    marginBottom: 10,
+  },
+  label: {
+    fontWeight: "bold",
+    color: "#888",
+  },
+});
 
 export default CompraRealizada;

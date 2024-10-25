@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
-import { Pagination } from './Pagination';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Picker,
+} from 'react-native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { REACT_NATIVE_URI_BACK } from '@env';
 
 const Compras = () => {
-  const userId = localStorage.getItem("userId")
   const [products, setProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const productsPerPage = 5;
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchProducts = async () => {
+      const userId = await AsyncStorage.getItem('userId');
       try {
-        const response = await axios.get(import.meta.env.VITE_URI_BACK+"/api/venta/byUserId/"+userId);
+        const response = await axios.get(`${REACT_NATIVE_URI_BACK}/api/venta/byUserId/${userId}`);
         setProducts(response.data);
       } catch (error) {
         console.error('Error al obtener los registros de ventas:', error);
@@ -24,119 +35,150 @@ const Compras = () => {
     fetchProducts();
   }, []);
 
-  const handleFilterChange = (event) => {
-    setFilterType(event.target.value);
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+  const handleFilterChange = (value) => setFilterType(value);
+  const handleSearchChange = (value) => setSearchTerm(value);
 
   const formatFecha = (fechaString) => {
     const fecha = new Date(fechaString);
-    const options = {
+    return fecha.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
-    };
-    return fecha.toLocaleDateString('es-ES', options);
+    });
   };
 
-  const filteredProducts = filterType ? products.filter(product => product.estado === filterType) : products;
+  const filteredProducts = filterType
+    ? products.filter((product) => product.estado === filterType)
+    : products;
+
   const searchedProducts = searchTerm
-    ? filteredProducts.filter(product =>
+    ? filteredProducts.filter((product) =>
         product.nameProduct.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : filteredProducts;
+
   const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = searchedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = searchedProducts.slice(
+    indexOfLastProduct - productsPerPage,
+    indexOfLastProduct
+  );
+
+  const renderProduct = ({ item }) => (
+    <View style={styles.productContainer}>
+      <Text style={styles.productText}>Producto: {item.nameProduct}</Text>
+      <Text style={styles.productText}>Cantidad: {item.cantidad}</Text>
+      <Text style={styles.productText}>Precio Total: {item.precioTotal}</Text>
+      <Text style={styles.productText}>Fecha: {formatFecha(item.createdAt)}</Text>
+      <Text style={styles.productText}>Estado: {item.estado}</Text>
+      <TouchableOpacity
+        style={styles.viewButton}
+        onPress={() => navigation.navigate('OneCompra', { id: item._id })}
+      >
+        <Text style={styles.buttonText}>Ver</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <>
-      <div className="container">
-        <div className="columns">
-            <div className="column is-fullheight">
-                <div className="section">
-                    <div className="columns">
-                        <div className="column">
-                            <div className="field">
-                                <div className="control container-filtro">
-                                    <label className="label-text">Filtrar por el estado de Venta:</label>
-                                    <div className="select">
-                                        <select onChange={handleFilterChange}>
-                                          <option value="">Todos</option>
-                                          <option value="Pagado">Pagado</option>
-                                          <option value="Despachado">Despachado</option>
-                                          <option value="Finalizado">Finalizado</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="column">
-                            <div className="field container-search">
-                                <div className="control">
-                                    <input
-                                        type="text"
-                                        className="input is-info"
-                                        placeholder="Ingrese el nombre del producto a buscar..."
-                                        value={searchTerm}
-                                        onChange={handleSearchChange}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div className="table-container">
-          <table className="table is-fullwidth">
-            <thead>
-              <tr>
-                <th>Nombre del Producto</th>
-                <th>Cantidad</th>
-                <th>Precio Total</th>
-                <th>Fecha del Tramite</th>
-                {/* <th>Fecha de Fin</th> */}
-                <th>Estado</th>
-                <th>Opciones</th>
-              </tr>
-            </thead>
-            <tbody>
-            {currentProducts.map(product => (
-                <tr key={product._id}>
-                <td>{product.nameProduct}</td>
-                <td>{product.cantidad}</td>
-                <td>{product.precioTotal}</td>
-                <td>{formatFecha(product.createdAt)}</td>
-                {/* <td>{product.createdAt !== product.updatedAt ? formatFecha(product.updatedAt) : ""}</td> */}
-                <td>{product.estado}</td>
-                <td className="td-opcion">
-                    <Link to={"/cuenta/compras/"+product._id} className="button is-success btn-opcion">
-                        Ver
-                    </Link>
-                </td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="paginator">
-          <Pagination
-            productsPerPage={productsPerPage}
-            totalProducts={searchedProducts.length}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-          />
-        </div>
-      </div>
-    </>
-  )
-}
+    <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        <Text style={styles.label}>Filtrar por Estado:</Text>
+        <Picker selectedValue={filterType} onValueChange={handleFilterChange} style={styles.picker}>
+          <Picker.Item label="Todos" value="" />
+          <Picker.Item label="Pagado" value="Pagado" />
+          <Picker.Item label="Despachado" value="Despachado" />
+          <Picker.Item label="Finalizado" value="Finalizado" />
+        </Picker>
+      </View>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Buscar por nombre del producto"
+        value={searchTerm}
+        onChangeText={handleSearchChange}
+      />
+      <FlatList
+        data={currentProducts}
+        renderItem={renderProduct}
+        keyExtractor={(item) => item._id}
+        style={styles.list}
+      />
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity onPress={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+          <Text style={styles.paginationText}>Anterior</Text>
+        </TouchableOpacity>
+        <Text style={styles.paginationText}>Página {currentPage}</Text>
+        <TouchableOpacity
+          onPress={() => setCurrentPage(currentPage + 1)}
+          disabled={indexOfLastProduct >= searchedProducts.length}
+        >
+          <Text style={styles.paginationText}>Siguiente</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
-export default Compras
+export default Compras;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  filterContainer: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  picker: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+  },
+  searchInput: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+  },
+  list: {
+    flex: 1,
+  },
+  productContainer: {
+    borderBottomColor: '#ddd',
+    borderBottomWidth: 1,
+    paddingVertical: 15,
+  },
+  productText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  viewButton: {
+    backgroundColor: '#FF5733',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  paginationText: {
+    fontSize: 16,
+    color: '#007BFF',
+  },
+});

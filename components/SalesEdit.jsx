@@ -1,116 +1,131 @@
-import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Picker,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import axios from 'axios';
+import { REACT_NATIVE_URI_BACK } from '@env';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const SalesEdit = () => {
-  const { id } = useParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { id } = route.params;
 
   const [formData, setFormData] = useState({
-      estado: "",
+    estado: '',
   });
 
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState("");
-
   useEffect(() => {
-      const fetchProductDetails = async () => {
-          try {
-              const response = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/venta/${id}`);
-              const ventaData = response.data;
-              setFormData(ventaData);
-          } catch (error) {
-              console.error("Error al obtener los detalles de la venta:", error);
-          }
-      };
+    const fetchSaleDetails = async () => {
+      try {
+        const response = await axios.get(`${REACT_NATIVE_URI_BACK}/api/venta/${id}`);
+        setFormData(response.data);
+      } catch (error) {
+        console.error('Error al obtener los detalles de la venta:', error);
+      }
+    };
 
-      fetchProductDetails();
+    fetchSaleDetails();
   }, [id]);
 
-  const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData({
-          ...formData,
-          [name]: value,
-      });
+  const handleChange = (value) => {
+    setFormData({
+      ...formData,
+      estado: value,
+    });
   };
 
-  const handleSubmit = async (e) => {
-      e.preventDefault();
-
-      try {
-          const response = await axios.put(`${import.meta.env.VITE_URI_BACK}/api/venta/${id}`, formData);
-          setModalContent("Estado de la venta actualizado correctamente.");
-          setShowModal(true);
-      } catch (error) {
-          console.error("Error al actualizar el estado de la venta:", error);
-          if (error.response) {
-              const errorMessage = error.response.data.msg || "Error desconocido";
-              setModalContent(errorMessage);
-              setShowModal(true);
-          }
-      }
+  const handleSubmit = async () => {
+    try {
+      await axios.put(`${REACT_NATIVE_URI_BACK}/api/venta/${id}`, formData);
+      Alert.alert('Mensaje', 'Estado de la venta actualizado correctamente.', [
+        { text: 'OK', onPress: () => navigation.navigate('SalesList') },
+      ]);
+    } catch (error) {
+      const errorMessage = error.response?.data?.msg || 'Error desconocido';
+      Alert.alert('Error', errorMessage);
+    }
   };
 
   return (
-      <>
-          <section className="section section-register">
-              <div className="container container-background">
-                  <div className="columns is-centered">
-                      <div className="column is-6">
-                          <div className="box">
-                              <h2 className="title is-2 has-text-centered mb-6 newh2">
-                                  Editar Estado de Venta
-                              </h2>
-                              <p className="subtitle is-6 has-text-centered mb-1 newsubtitle">
-                                  Por favor, selecciona el nuevo estado de la venta.
-                              </p>
-                              <form onSubmit={handleSubmit}>
-                                  <div className="field">
-                                      <label className="label">Estado de la Venta</label>
-                                      <div className="control select is-fullwidth">
-                                          <select
-                                              id="estado"
-                                              name="estado"
-                                              value={formData.estado}
-                                              onChange={handleChange}
-                                          >
-                                              <option value="Pagado">Pagado</option>
-                                              <option value="Despachado">Despachado</option>
-                                              <option value="Finalizado">Finalizado</option>
-                                          </select>
-                                      </div>
-                                  </div>
-                                  <div className="field is-grouped is-grouped-centered">
-                                      <div className="control">
-                                          <button className="button is-danger button-login">
-                                              Actualizar
-                                          </button>
-                                          <Link to="/administracion/ventas" className="button is-link btn-form">
-                                              Regresar
-                                          </Link>
-                                      </div>
-                                  </div>
-                              </form>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </section>
-          <div className={`modal ${showModal ? "is-active" : ""}`}>
-              <div className="modal-background" onClick={() => setShowModal(false)}></div>
-              <div className="modal-card custom-modal">
-                  <header className="modal-card-head">
-                      <p className="modal-card-title">Mensaje</p>
-                      <Link className="delete" aria-label="close" to="/administracion/ventas" onClick={() => setShowModal(false)}>
-                      </Link>
-                  </header>
-                  <section className="modal-card-body">
-                      <p>{modalContent}</p>
-                  </section>
-              </div>
-          </div>
-      </>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Editar Estado de Venta</Text>
+      <Text style={styles.subtitle}>Por favor, selecciona el nuevo estado de la venta.</Text>
+
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={formData.estado}
+          onValueChange={(value) => handleChange(value)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Pagado" value="Pagado" />
+          <Picker.Item label="Despachado" value="Despachado" />
+          <Picker.Item label="Finalizado" value="Finalizado" />
+        </Picker>
+      </View>
+
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Actualizar</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('SalesList')}>
+        <Text style={styles.link}>Regresar</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
 export default SalesEdit;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  pickerContainer: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  button: {
+    backgroundColor: '#FF5733',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  link: {
+    color: '#007BFF',
+    textAlign: 'center',
+    fontSize: 16,
+    marginVertical: 10,
+  },
+});

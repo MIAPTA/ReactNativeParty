@@ -1,51 +1,82 @@
-import { Link } from "react-router-dom";
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const SidebarAdmin = ({ handleOptionChange, selectedOption }) => {
-    return (
-      <>
-        <aside className="column is-2 is-narrow-mobile is-fullheight section is-hidden-mobile sidebar">
-          <p className="menu is-hidden-touch">Menu</p>
-          <ul className="menu-list">
-            <li>
-              <Link
-                to="/administracion/contactos"
-                className={selectedOption === "contactos" ? "selected" : ""}
-                onClick={() => handleOptionChange("contactos")}
-              >
-                <span className="icon"><i className="fa fa-home"></i></span> Contactos
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/administracion/productos"
-                className={selectedOption === "productos" ? "selected" : ""}
-                onClick={() => handleOptionChange("productos")}
-              >
-                <span className="icon"><i className="fa fa-table"></i></span> Productos
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/administracion/usuarios"
-                className={selectedOption === "usuarios" ? "selected" : ""}
-                onClick={() => handleOptionChange("usuarios")}
-              >
-                <span className="icon"><i className="fa fa-info"></i></span> Usuarios
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/administracion/ventas"
-                className={selectedOption === "ventas" ? "selected" : ""}
-                onClick={() => handleOptionChange("ventas")}
-              >
-                <span className="icon"><i className="fa fa-info"></i></span> Ventas
-              </Link>
-            </li>
-          </ul>
-        </aside>
-      </>
-    );
+  const navigation = useNavigation();
+
+  const handleNavigation = (screen, option) => {
+    handleOptionChange(option);
+    navigation.navigate(screen);
   };
-  
-  export default SidebarAdmin;
+
+  return (
+    <View style={styles.sidebar}>
+      <Text style={styles.menuTitle}>Menu</Text>
+      <TouchableOpacity
+        style={[styles.menuItem, selectedOption === 'contactos' && styles.selected]}
+        onPress={() => handleNavigation('Contactos', 'contactos')}
+      >
+        <Text style={styles.icon}>🏠</Text>
+        <Text style={styles.menuText}>Contactos</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[styles.menuItem, selectedOption === 'productos' && styles.selected]}
+        onPress={() => handleNavigation('Productos', 'productos')}
+      >
+        <Text style={styles.icon}>📦</Text>
+        <Text style={styles.menuText}>Productos</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.menuItem, selectedOption === 'usuarios' && styles.selected]}
+        onPress={() => handleNavigation('Usuarios', 'usuarios')}
+      >
+        <Text style={styles.icon}>👤</Text>
+        <Text style={styles.menuText}>Usuarios</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.menuItem, selectedOption === 'ventas' && styles.selected]}
+        onPress={() => handleNavigation('Ventas', 'ventas')}
+      >
+        <Text style={styles.icon}>💸</Text>
+        <Text style={styles.menuText}>Ventas</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+export default SidebarAdmin;
+
+const styles = StyleSheet.create({
+  sidebar: {
+    flex: 1,
+    backgroundColor: '#333',
+    padding: 10,
+  },
+  menuTitle: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 20,
+    fontWeight: 'bold',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  selected: {
+    backgroundColor: '#555',
+  },
+  icon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  menuText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+});

@@ -1,74 +1,101 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
-import axios from 'axios';
+import { View, Text, Button, StyleSheet } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 const OneCompra = () => {
-  const { id } = useParams();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { id } = route.params;
 
   const [venta, setVenta] = useState({});
   const [usuario, setUsuario] = useState({});
   const [producto, setProducto] = useState({});
 
   useEffect(() => {
-      const fetchVentaDetails = async () => {
-          try {
-              const response = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/venta/${id}`);
-              setVenta(response.data);
+    const fetchVentaDetails = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_NATIVE_URI_BACK}/api/venta/${id}`
+        );
+        setVenta(response.data);
 
-              const usuarioResponse = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/usuario/${response.data.idUser}`);
-              setUsuario(usuarioResponse.data);
+        const usuarioResponse = await axios.get(
+          `${process.env.REACT_NATIVE_URI_BACK}/api/usuario/${response.data.idUser}`
+        );
+        setUsuario(usuarioResponse.data);
 
-              const productoResponse = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/producto/${response.data.idProduct}`);
-              setProducto(productoResponse.data);
-          } catch (error) {
-              console.error("Error al obtener los detalles de la venta:", error);
-          }
-      };
+        const productoResponse = await axios.get(
+          `${process.env.REACT_NATIVE_URI_BACK}/api/producto/${response.data.idProduct}`
+        );
+        setProducto(productoResponse.data);
+      } catch (error) {
+        console.error("Error al obtener los detalles de la venta:", error);
+      }
+    };
 
-      fetchVentaDetails();
+    fetchVentaDetails();
   }, [id]);
 
   return (
-      <>
-          <section className="section section-register">
-              <div className="container container-background">
-                  <div className="columns is-centered">
-                      <div className="column is-6">
-                          <div className="box">
-                              <h2 className="title is-2 has-text-centered mb-6 newh2">
-                                  Detalles de la Venta
-                              </h2>
-                              <div className="content cont-venta">
-                                  <p className="has-text-white">
-                                    <strong className="info-venta">Nombre del Usuario: </strong>
-                                    {usuario.nombre}</p>
-                                  <p className="has-text-white">
-                                    <strong className="info-venta">Nombre del Producto: </strong>
-                                    {producto.nombre}</p>
-                                  <p className="has-text-white">
-                                    <strong className="info-venta">Cantidad: </strong>
-                                    {venta.cantidad}</p>
-                                  <p className="has-text-white">
-                                    <strong className="info-venta">Precio Total: </strong> 
-                                    {venta.precioTotal}</p>
-                                  <p className="has-text-white">
-                                    <strong className="info-venta">Estado Actual: </strong>
-                                    {venta.estado}</p>
-                              </div>
-                              <div className="field is-grouped is-grouped-centered">
-                                  <div className="control">
-                                      <Link to="/cuenta/compras" className="button is-link btn-form">
-                                          Regresar
-                                      </Link>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </section>
-      </>
+    <View style={styles.container}>
+      <Text style={styles.title}>Detalles de la Venta</Text>
+      <View style={styles.content}>
+        <Text style={styles.infoText}>
+          <Text style={styles.infoLabel}>Nombre del Usuario: </Text>
+          {usuario.nombre}
+        </Text>
+        <Text style={styles.infoText}>
+          <Text style={styles.infoLabel}>Nombre del Producto: </Text>
+          {producto.nombre}
+        </Text>
+        <Text style={styles.infoText}>
+          <Text style={styles.infoLabel}>Cantidad: </Text>
+          {venta.cantidad}
+        </Text>
+        <Text style={styles.infoText}>
+          <Text style={styles.infoLabel}>Precio Total: </Text>
+          {venta.precioTotal}
+        </Text>
+        <Text style={styles.infoText}>
+          <Text style={styles.infoLabel}>Estado Actual: </Text>
+          {venta.estado}
+        </Text>
+      </View>
+      <Button
+        title="Regresar"
+        onPress={() => navigation.navigate("Compras")}
+        color="#007bff"
+      />
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#121212",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ffffff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  content: {
+    marginBottom: 20,
+  },
+  infoText: {
+    fontSize: 18,
+    color: "#ffffff",
+    marginBottom: 10,
+  },
+  infoLabel: {
+    fontWeight: "bold",
+    color: "#d1d1d1",
+  },
+});
 
 export default OneCompra;

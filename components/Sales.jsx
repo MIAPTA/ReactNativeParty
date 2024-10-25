@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
-import { Pagination } from './Pagination';
+import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, StyleSheet } from 'react-native';
 import axios from 'axios';
+import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
+import { REACT_NATIVE_URI_BACK } from '@env';
 
 const Sales = () => {
   const [ventas, setVentas] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [usuarios, setUsuarios] = useState({});
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterType, setFilterType] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const ventasPorPagina = 5;
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchVentas = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/venta`);
+        const response = await axios.get(`${REACT_NATIVE_URI_BACK}/api/venta`);
         setVentas(response.data);
       } catch (error) {
         console.error('Error al obtener los registros de ventas:', error);
       }
     };
-
     fetchVentas();
   }, []);
 
@@ -29,10 +30,10 @@ const Sales = () => {
     const fetchUsuarios = async () => {
       const usuariosMap = {};
       try {
-        const ventasConUsuarios = ventas.filter(venta => venta.idUser);
+        const ventasConUsuarios = ventas.filter((venta) => venta.idUser);
         for (const venta of ventasConUsuarios) {
           if (!usuariosMap[venta.idUser]) {
-            const response = await axios.get(`${import.meta.env.VITE_URI_BACK}/api/usuario/${venta.idUser}`);
+            const response = await axios.get(`${REACT_NATIVE_URI_BACK}/api/usuario/${venta.idUser}`);
             usuariosMap[venta.idUser] = response.data.nombre;
           }
         }
@@ -41,128 +42,164 @@ const Sales = () => {
         console.error('Error al obtener los nombres de usuario:', error);
       }
     };
-
     fetchUsuarios();
   }, [ventas]);
 
-  const handleFilterChange = (event) => {
-    setFilterType(event.target.value);
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
-
   const formatFecha = (fechaString) => {
     const fecha = new Date(fechaString);
-    const options = {
+    return fecha.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
-    };
-    return fecha.toLocaleDateString('es-ES', options);
+    });
   };
 
-  const filteredVentas = filterType ? ventas.filter(venta => venta.estado === filterType) : ventas;
+  const filteredVentas = filterType ? ventas.filter((venta) => venta.estado === filterType) : ventas;
   const searchedVentas = searchTerm
-  ? filteredVentas.filter(venta =>
-      venta.nameProduct.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (usuarios[venta.idUser] && usuarios[venta.idUser].toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-  : filteredVentas;
+    ? filteredVentas.filter((venta) =>
+        venta.nameProduct.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (usuarios[venta.idUser] && usuarios[venta.idUser].toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : filteredVentas;
 
-  const indexOfLastVenta = currentPage * ventasPorPagina;
-  const indexOfFirstVenta = indexOfLastVenta - ventasPorPagina;
-  const ventasActuales = searchedVentas.slice(indexOfFirstVenta, indexOfLastVenta);
+  const currentVentas = searchedVentas.slice(
+    (currentPage - 1) * ventasPorPagina,
+    currentPage * ventasPorPagina
+  );
+
+  const renderVenta = ({ item }) => (
+    <View style={styles.ventaItem}>
+      <Text style={styles.ventaText}>Usuario: {usuarios[item.idUser]}</Text>
+      <Text style={styles.ventaText}>Producto: {item.nameProduct}</Text>
+      <Text style={styles.ventaText}>Cantidad: {item.cantidad}</Text>
+      <Text style={styles.ventaText}>Precio Total: {item.precioTotal}</Text>
+      <Text style={styles.ventaText}>Fecha del Tramite: {formatFecha(item.createdAt)}</Text>
+      <Text style={styles.ventaText}>Estado: {item.estado}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.viewButton}
+          onPress={() => navigation.navigate('SaleDetails', { saleId: item._id })}
+        >
+          <Text style={styles.buttonText}>Ver</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => navigation.navigate('SaleEdit', { saleId: item._id })}
+        >
+          <Text style={styles.buttonText}>Editar Estado</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
-    <>
-      <div className="container">
-        <div className="columns">
-            <div className="column is-fullheight">
-                <div className="section">
-                    <div className="columns">
-                        <div className="column">
-                            <div className="field">
-                                <div className="control container-filtro">
-                                    <label className="label-text">Filtrar por el estado de Venta:</label>
-                                    <div className="select">
-                                        <select onChange={handleFilterChange}>
-                                          <option value="">Todos</option>
-                                          <option value="Pagado">Pagado</option>
-                                          <option value="Despachado">Despachado</option>
-                                          <option value="Finalizado">Finalizado</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="column">
-                            <div className="field container-search">
-                                <div className="control">
-                                    <input
-                                        type="text"
-                                        className="input is-info"
-                                        placeholder="Ingrese el nombre del producto o del usuario a buscar..."
-                                        value={searchTerm}
-                                        onChange={handleSearchChange}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div className="table-container">
-          <table className="table is-fullwidth">
-            <thead>
-              <tr>
-                <th>Nombre del Usuario</th>
-                <th>Nombre del Producto</th>
-                <th>Cantidad</th>
-                <th>Precio Total</th>
-                <th>Fecha del Tramite</th>
-                {/* <th>Fecha de Fin</th> */}
-                <th>Estado</th>
-                <th>Opciones</th>
-              </tr>
-            </thead>
-            <tbody>
-            {ventasActuales.map(venta => (
-                <tr key={venta._id}>
-                <td>{usuarios[venta.idUser]}</td>
-                <td>{venta.nameProduct}</td>
-                <td>{venta.cantidad}</td>
-                <td>{venta.precioTotal}</td>
-                <td>{formatFecha(venta.createdAt)}</td>
-                {/* <td>{venta.createdAt !== venta.updatedAt ? formatFecha(venta.updatedAt) : ""}</td> */}
-                <td>{venta.estado}</td>
-                <td className="td-opcion">
-                    <Link to={"/administracion/ventas/"+venta._id} className="button is-success btn-opcion">
-                        Ver
-                    </Link>
-                    <Link to={"/administracion/ventas/edit/"+venta._id} className="button is-warning btn-opcion">Editar Estado</Link>
-                </td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="paginator">
-          <Pagination
-            productsPerPage={ventasPorPagina}
-            totalProducts={searchedVentas.length}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-          />
-        </div>
-      </div>
-    </>
-  )
-}
+    <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        <Picker
+          selectedValue={filterType}
+          style={styles.picker}
+          onValueChange={(itemValue) => setFilterType(itemValue)}
+        >
+          <Picker.Item label="Todos" value="" />
+          <Picker.Item label="Pagado" value="Pagado" />
+          <Picker.Item label="Despachado" value="Despachado" />
+          <Picker.Item label="Finalizado" value="Finalizado" />
+        </Picker>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar producto o usuario..."
+          value={searchTerm}
+          onChangeText={(text) => setSearchTerm(text)}
+        />
+      </View>
+      <FlatList
+        data={currentVentas}
+        renderItem={renderVenta}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContainer}
+      />
+      <View style={styles.pagination}>
+        <TouchableOpacity
+          disabled={currentPage === 1}
+          onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+        >
+          <Text style={styles.paginationText}>Anterior</Text>
+        </TouchableOpacity>
+        <Text style={styles.paginationText}>Página {currentPage}</Text>
+        <TouchableOpacity
+          disabled={currentPage >= Math.ceil(searchedVentas.length / ventasPorPagina)}
+          onPress={() => setCurrentPage((prev) => prev + 1)}
+        >
+          <Text style={styles.paginationText}>Siguiente</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 export default Sales;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  picker: {
+    flex: 1,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 8,
+  },
+  ventaItem: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  ventaText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  viewButton: {
+    backgroundColor: '#28a745',
+    padding: 10,
+    borderRadius: 5,
+  },
+  editButton: {
+    backgroundColor: '#ffc107',
+    padding: 10,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  paginationText: {
+    fontSize: 16,
+  },
+});
