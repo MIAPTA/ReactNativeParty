@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Importa las pantallas o vistas de tu app
 // import Contact from '../components/Contact';
  import Tienda from '../components/Tienda';
-// import OneProduct from '../components/OneProduct';
+ import OneProduct from '../components/OneProduct';
  import Nosotros from '../components/Nosotros';
 // import Login from '../components/Login';
 // import Cuenta from '../components/Cuenta';
@@ -22,7 +22,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // import PerfilEdit from '../components/PerfilEdit';
 // import OneCompra from '../components/OneCompra';
 // import OneSale from '../components/OneSale';
-// import Cart from '../components/Cart';
+ import Cart from '../components/Cart';
 // import CompraRealizada from '../components/CompraRealizada';
 
 const Stack = createStackNavigator();
@@ -50,11 +50,11 @@ const App = () => {
       <Stack.Navigator initialRouteName={isLogin ? 'Inicio' : 'Login'}>
         <Stack.Screen name="Inicio" component={Inicio} />
         <Stack.Screen name="Tienda" component={Tienda} />
-        {/* <Stack.Screen name="Producto" component={OneProduct} />
-        <Stack.Screen name="Contacto" component={Contact} /> */}
+        <Stack.Screen name="OneProduct" component={OneProduct} />
+        {/* <Stack.Screen name="Contacto" component={Contact} /> */}
         <Stack.Screen name="Nosotros" component={Nosotros} />
-        {/* <Stack.Screen name="Carrito" component={Cart} />
-        <Stack.Screen name="CompraRealizada" component={CompraRealizada} />
+        <Stack.Screen name="Cart" component={Cart} />
+        {/* <Stack.Screen name="CompraRealizada" component={CompraRealizada} />
         <Stack.Screen name="Login">
           {(props) => (
             <Login

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
-import axios from 'axios'; // Asegúrate de tener axios importado
-import { addToCart } from './cartUtils'; // Importa la función de utilidad
-import { useNavigate } from 'react-router-dom';
+import { View, Text, Image, Button, Modal, FlatList, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { addToCart } from '../components/CartUtils'; // Asegúrate de tener esta función disponible
 
 const Cart = ({ product, quantity }) => {
   const [cart, setCart] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState("");
-  const navigate = useNavigate(); // Mover fuera de handleCheckout para usar correctamente el hook
+  const navigation = useNavigation();
 
-  // Cargar carrito del localStorage
+  // Cargar carrito del AsyncStorage
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
-    setCart(savedCart);
+    const loadCart = async () => {
+      const savedCart = await AsyncStorage.getItem('cart');
+      setCart(savedCart ? JSON.parse(savedCart) : []);
+    };
+    loadCart();
   }, []);
 
   // Calcular el total del carrito
@@ -22,27 +26,27 @@ const Cart = ({ product, quantity }) => {
   };
 
   // Eliminar un producto del carrito
-  const removeFromCart = (id) => {
+  const removeFromCart = async (id) => {
     const updatedCart = cart.filter(item => item.id !== id);
     setCart(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
   // Modificar la cantidad de un producto
-  const updateQuantity = (id, quantity) => {
+  const updateQuantity = async (id, quantity) => {
     const updatedCart = cart.map(item => item.id === id ? { ...item, quantity: parseInt(quantity) } : item);
     setCart(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
   // Reutilizar la función de añadir al carrito
   const handleAddToCart = () => {
-    addToCart(product, quantity, setModalContent, setShowModal); // Reutiliza la función de utilidad
+    addToCart(product, quantity, setModalContent, setShowModal);
   };
 
-  // Hacer la compra (realiza el POST al backend para cada producto)
+  // Hacer la compra
   const handleCheckout = async () => {
-    const userId = localStorage.getItem('userId');
+    const userId = await AsyncStorage.getItem('userId');
     
     if (!userId) {
       setModalContent("Para realizar una compra, debes iniciar sesión.");
@@ -56,16 +60,14 @@ const Cart = ({ product, quantity }) => {
       return;
     }
 
-    let errores = []; // Para capturar errores si los hay
-    let totalCompra = 0; // Para calcular el total de la compra
+    let errores = [];
+    let totalCompra = 0;
 
-    // Enviamos cada producto al backend uno por uno
     for (const product of cart) {
       try {
         const totalPrice = product.precio * product.quantity;
         totalCompra += totalPrice;
 
-        // Prepara los datos de cada producto para enviarlos al backend
         const formData = {
           idProduct: product.id,
           idUser: userId,
@@ -75,7 +77,6 @@ const Cart = ({ product, quantity }) => {
           estado: "Pagado"
         };
 
-        // Enviar producto individualmente al backend
         const response = await axios.post(`${import.meta.env.VITE_URI_BACK}/api/venta`, formData);
 
         if (response.status !== 201) {
@@ -87,15 +88,14 @@ const Cart = ({ product, quantity }) => {
       }
     }
 
-    // Mostrar los resultados en el modal
     if (errores.length > 0) {
       setModalContent(`Se registraron algunos errores: ${errores.join(", ")}`);
     } else {
       setModalContent("Compra registrada correctamente.");
-      localStorage.setItem('totalCompra', totalCompra); // Guardar el total de la compra
-      localStorage.removeItem('cart'); // Limpiar el carrito después de la compra
-      setCart([]); // Limpiar el estado del carrito
-      navigate(`/compra-realizada`); // Redirigir a la página de confirmación
+      await AsyncStorage.setItem('totalCompra', totalCompra.toString());
+      await AsyncStorage.removeItem('cart');
+      setCart([]);
+      navigation.navigate('CompraRealizada'); // Asegúrate de que la ruta esté definida
     }
 
     setShowModal(true);
@@ -103,59 +103,103 @@ const Cart = ({ product, quantity }) => {
 
   if (cart.length === 0) {
     return (
-      <div className="container">
-        <br />
-        <h2 className="cart-title">Tu carrito está vacío</h2>
-        <Link to="/tienda" className="button is-info">Volver a la tienda</Link>
-      </div>
+      <View style={styles.container}>
+        <Text style={styles.title}>Tu carrito está vacío</Text>
+        <Button title="Volver a la tienda" onPress={() => navigation.navigate('Tienda')} />
+      </View>
     );
   }
 
   return (
-    <div className="container">
-      <br />
-      <h2 className="cart-title">Carrito de Compras</h2>
-      {cart.map(item => (
-        <div key={item.id} className="columns is-vcentered">
-          <div className="column">
-            <img src={item.imagen} alt={item.nombre} style={{ width: '100px' }} />
-          </div>
-          <div className="column">
-            {item.nombre}
-          </div>
-          <div className="column">
-            {item.quantity}
-          </div>
-          <div className="column">
-            ${item.precio * item.quantity}
-          </div>
-          <div className="column">
-            <button className="button is-danger" onClick={() => removeFromCart(item.id)}>Eliminar</button>
-          </div>
-        </div>
-      ))}
-      <hr />
-      <h3>Total: ${getTotalPrice()}</h3>
-      <div>
-        <Link to="/tienda" className="button is-warning">Seguir Comprando</Link>
-        <button className="button is-success" onClick={handleCheckout}>Comprar</button>
-      </div>
+    <View style={styles.container}>
+      <Text style={styles.title}>Carrito de Compras</Text>
+      <FlatList
+        data={cart}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.cartItem}>
+            <Image source={{ uri: item.imagen }} style={styles.image} />
+            <Text>{item.nombre}</Text>
+            <Text>{item.quantity}</Text>
+            <Text>${item.precio * item.quantity}</Text>
+            <Button title="Eliminar" onPress={() => removeFromCart(item.id)} color="red" />
+          </View>
+        )}
+      />
+      <Text style={styles.total}>Total: ${getTotalPrice()}</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="Seguir Comprando" onPress={() => navigation.navigate('Tienda')} color="orange" />
+        <Button title="Comprar" onPress={handleCheckout} color="green" />
+      </View>
 
       {/* Modal para mostrar mensajes */}
-      <div className={`modal ${showModal ? "is-active" : ""}`}>
-        <div className="modal-background" onClick={() => setShowModal(false)}></div>
-        <div className="modal-card">
-          <header className="modal-card-head">
-            <p className="modal-card-title">Mensaje</p>
-            <button className="delete" aria-label="close" onClick={() => setShowModal(false)}></button>
-          </header>
-          <section className="modal-card-body">
-            <p>{modalContent}</p>
-          </section>
-        </div>
-      </div>
-    </div>
+      <Modal
+        transparent={true}
+        visible={showModal}
+        animationType="slide"
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Mensaje</Text>
+            <Text>{modalContent}</Text>
+            <Button title="Cerrar" onPress={() => setShowModal(false)} />
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    marginRight: 10,
+  },
+  total: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+});
 
 export default Cart;

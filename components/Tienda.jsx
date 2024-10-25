@@ -11,7 +11,7 @@ import {
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import Pagination from "../components/Pagination";
-import { REACT_NATIVE_URI } from '@env';
+import { REACT_NATIVE_URI_BACK } from '@env';
 
 function Tienda() {
   const [products, setProducts] = useState([]);
@@ -24,8 +24,8 @@ function Tienda() {
   useEffect(() => {
     const fetchProducts = async () => {
         try {
-            const url = `${REACT_NATIVE_URI}/api/producto`;
-            console.log("Fetching from URL: ", url);  // Verifica si la URL es correcta
+            const url = `${REACT_NATIVE_URI_BACK}/api/producto`;
+            //console.log("Fetching from URL: ", url);  // Verifica si la URL es correcta
             const response = await axios.get(url);
             console.log("Datos recibidos:", response.data);
             setProducts(response.data);
@@ -64,7 +64,7 @@ function Tienda() {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.cardProduct}
-      onPress={() => navigation.navigate("ProductDetails", { id: item._id })}
+      onPress={() => navigation.navigate('OneProduct', { id: item._id })} // Navegar al componente de detalles
     >
       <Image source={{ uri: item.imagen }} style={styles.productImage} />
       <View style={styles.infoProduct}>
